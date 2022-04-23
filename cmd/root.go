@@ -18,7 +18,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"time"
+	"strings"
 
 	"github.com/penny-vault/import-fred/fred"
 	"github.com/rs/zerolog"
@@ -37,23 +37,24 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Info().
-			Dur("MaxAge", viper.GetDuration("max_age")).
-			Strs("Exchanges", viper.GetStringSlice("exchanges")).
-			Strs("AssetTypes", viper.GetStringSlice("asset_types")).
-			Msg("loading tickers")
-
-		assets := fred.FetchTickers()
-		assets = fred.FilterExchange(assets, viper.GetStringSlice("exchanges"))
-		assets = fred.FilterAssetType(assets, viper.GetStringSlice("asset_types"))
-		assets = fred.FilterAge(assets, viper.GetDuration("max_age"))
+		assetsMap := viper.GetStringMapString("assets")
+		assets := make([]*fred.Asset, 0, len(assetsMap))
+		for k, v := range assetsMap {
+			a := fred.Asset{
+				Ticker:        strings.ToUpper(k),
+				CompositeFigi: v,
+				AssetType:     "Economic Indicator",
+				Exchange:      "FRED",
+			}
+			assets = append(assets, &a)
+		}
 
 		limit := viper.GetInt("limit")
 		if limit > 0 {
 			assets = assets[:limit]
 		}
 
-		quotes := fred.FetchEodQuotes(assets)
+		quotes := fred.Fetch(assets)
 		if viper.GetString("parquet_file") != "" {
 			fred.SaveToParquet(quotes, viper.GetString("parquet_file"))
 		}
@@ -82,23 +83,11 @@ func init() {
 	viper.BindPFlag("log.json", rootCmd.PersistentFlags().Lookup("log.json"))
 
 	// Local flags
-	rootCmd.Flags().StringP("fred-token", "t", "<not-set>", "fred API key token")
-	viper.BindPFlag("fred_token", rootCmd.Flags().Lookup("fred-token"))
-
 	rootCmd.Flags().StringP("database-url", "d", "host=localhost port=5432", "DSN for database connection")
 	viper.BindPFlag("database_url", rootCmd.Flags().Lookup("database-url"))
 
 	rootCmd.Flags().Uint32P("limit", "l", 0, "limit results to N")
 	viper.BindPFlag("limit", rootCmd.Flags().Lookup("limit"))
-
-	rootCmd.Flags().StringArray("asset-types", []string{"Stock", "Mutual Fund"}, "types of assets to download")
-	viper.BindPFlag("asset_types", rootCmd.Flags().Lookup("asset-types"))
-
-	rootCmd.Flags().StringArray("exchanges", []string{"AMEX", "BATS", "NASDAQ", "NMFQS", "NYSE", "NYSE ARCA", "NYSE MKT"}, "types of assets to download")
-	viper.BindPFlag("exchanges", rootCmd.Flags().Lookup("exchanges"))
-
-	rootCmd.Flags().Duration("max-age", 24*7*time.Hour, "maximum number of days stocks end date may be set too and still included")
-	viper.BindPFlag("max_age", rootCmd.Flags().Lookup("max-age"))
 
 	rootCmd.Flags().Int("fred-rate-limit", 5, "fred rate limit (items per second)")
 	viper.BindPFlag("fred_rate_limit", rootCmd.Flags().Lookup("fred-rate-limit"))

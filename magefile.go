@@ -262,7 +262,7 @@ func runWith(env map[string]string, cmd string, inArgs ...interface{}) error {
 }
 
 var (
-	pkgPrefixLen = len("github.com/penny-vault/import-sa-quant-rank")
+	pkgPrefixLen = len("github.com/penny-vault/import-fred")
 	pkgs         []string
 	pkgsInit     sync.Once
 )

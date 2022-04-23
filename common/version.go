@@ -87,9 +87,9 @@ func (v Version) String() string {
 }
 
 // BuildVersionString creates a version string. This is what you see when
-// running "import-sa-quant-rank version".
+// running "import-fred version".
 func BuildVersionString() string {
-	program := "import-sa-quant-rank"
+	program := "import-fred"
 
 	version := "v" + CurrentVersion.String()
 
