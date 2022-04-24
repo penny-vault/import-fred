@@ -58,6 +58,10 @@ var rootCmd = &cobra.Command{
 		if viper.GetString("parquet_file") != "" {
 			fred.SaveToParquet(quotes, viper.GetString("parquet_file"))
 		}
+
+		if viper.GetString("database_url") != "" {
+			fred.SaveToDatabase(quotes, viper.GetString("database_url"))
+		}
 	},
 }
 
