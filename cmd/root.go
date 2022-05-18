@@ -59,8 +59,8 @@ var rootCmd = &cobra.Command{
 			fred.SaveToParquet(quotes, viper.GetString("parquet_file"))
 		}
 
-		if viper.GetString("database_url") != "" {
-			fred.SaveToDatabase(quotes, viper.GetString("database_url"))
+		if viper.GetString("database.url") != "" {
+			fred.SaveToDatabase(quotes, viper.GetString("database.url"))
 		}
 	},
 }
@@ -88,7 +88,7 @@ func init() {
 
 	// Local flags
 	rootCmd.Flags().StringP("database-url", "d", "host=localhost port=5432", "DSN for database connection")
-	viper.BindPFlag("database_url", rootCmd.Flags().Lookup("database-url"))
+	viper.BindPFlag("database.url", rootCmd.Flags().Lookup("database-url"))
 
 	rootCmd.Flags().Uint32P("limit", "l", 0, "limit results to N")
 	viper.BindPFlag("limit", rootCmd.Flags().Lookup("limit"))

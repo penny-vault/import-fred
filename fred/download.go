@@ -160,7 +160,7 @@ func Fetch(assets []*Asset) []*Eod {
 
 func SaveToDatabase(quotes []*Eod, dsn string) error {
 	log.Info().Msg("saving to database")
-	conn, err := pgx.Connect(context.Background(), viper.GetString("DATABASE_URL"))
+	conn, err := pgx.Connect(context.Background(), viper.GetString("database.url"))
 	if err != nil {
 		log.Error().Str("OriginalError", err.Error()).Msg("Could not connect to database")
 	}
@@ -168,7 +168,7 @@ func SaveToDatabase(quotes []*Eod, dsn string) error {
 
 	for _, quote := range quotes {
 		_, err := conn.Exec(context.Background(),
-			`INSERT INTO eod_v1 (
+			`INSERT INTO eod (
 			"ticker",
 			"composite_figi",
 			"event_date",
@@ -192,7 +192,7 @@ func SaveToDatabase(quotes []*Eod, dsn string) error {
 			$9,
 			$10,
 			$11
-		) ON CONFLICT ON CONSTRAINT eod_v1_pkey
+		) ON CONFLICT ON CONSTRAINT eod_pkey
 		DO UPDATE SET
 			open = EXCLUDED.open,
 			high = EXCLUDED.high,
