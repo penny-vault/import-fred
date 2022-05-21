@@ -117,8 +117,8 @@ func initConfig() {
 		cobra.CheckErr(err)
 
 		// Search config in home directory with name ".import-fred" (without extension).
-		viper.AddConfigPath("/etc/import-fred/") // path to look for the config file in
-		viper.AddConfigPath(fmt.Sprintf("%s/.import-fred", home))
+		viper.AddConfigPath("/etc") // path to look for the config file in
+		viper.AddConfigPath(fmt.Sprintf("%s/.config", home))
 		viper.AddConfigPath(".")
 		viper.SetConfigType("toml")
 		viper.SetConfigName("import-fred")
