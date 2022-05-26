@@ -147,6 +147,7 @@ func Fetch(assets []*Asset) []*Eod {
 					High:          val32,
 					Low:           val32,
 					Close:         val32,
+					Split:         1,
 				}
 				quotes = append(quotes, &q)
 			}
