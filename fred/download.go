@@ -61,7 +61,7 @@ func SaveToParquet(records []*Eod, fn string) error {
 
 	fh, err := local.NewLocalFileWriter(fn)
 	if err != nil {
-		log.Error().Str("OriginalError", err.Error()).Str("FileName", fn).Msg("cannot create local file")
+		log.Error().Err(err).Str("FileName", fn).Msg("cannot create local file")
 		return err
 	}
 	defer fh.Close()
@@ -89,7 +89,7 @@ func SaveToParquet(records []*Eod, fn string) error {
 	}
 
 	if err = pw.WriteStop(); err != nil {
-		log.Error().Str("OriginalError", err.Error()).Msg("Parquet write failed")
+		log.Error().Err(err).Msg("Parquet write failed")
 		return err
 	}
 
@@ -119,7 +119,7 @@ func Fetch(assets []*Asset) []*Eod {
 			SetHeader("Accept", "application/csv").
 			Get(url)
 		if err != nil {
-			log.Error().Str("OriginalError", err.Error()).Str("Url", url).Msg("error when requesting eod quote")
+			log.Error().Err(err).Str("Url", url).Msg("error when requesting eod quote")
 		}
 		if resp.StatusCode() >= 400 {
 			log.Error().Int("StatusCode", resp.StatusCode()).Str("Url", url).Bytes("Body", resp.Body()).Msg("error when requesting eod quote")
@@ -134,7 +134,7 @@ func Fetch(assets []*Asset) []*Eod {
 				}
 				val, err := strconv.ParseFloat(parts[1], 32)
 				if err != nil {
-					log.Warn().Str("Line", ll).Str("Ticker", asset.Ticker).Str("Val", parts[1]).Str("OriginalError", err.Error()).Msg("could not convert str to float")
+					log.Warn().Str("Line", ll).Str("Ticker", asset.Ticker).Str("Val", parts[1]).Err(err).Msg("could not convert str to float")
 				}
 				val32 := float32(val)
 				q := Eod{
