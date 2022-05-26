@@ -62,6 +62,9 @@ var rootCmd = &cobra.Command{
 		if viper.GetString("database.url") != "" {
 			fred.SaveToDatabase(quotes)
 		}
+
+		for _, asset := range assets {
+			fred.Fill(asset)
 		}
 	},
 }
