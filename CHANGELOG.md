@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Removed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+
 ## [0.2.0] - 2022-05-26
 ### Added
 - Check PVDB history and ensure that each trading day has a value for all FRED measurements.
@@ -13,16 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Always set split factor in quote to 1
 
-### Removed
-
 ## [0.1.0] - 2022-05-20
 ### Added
 - Download economic indicators from FRED
 - Save economic indicators to backblaze and database
-
-### Changed
-
-### Removed
 
 [Unreleased]: https://github.com/penny-vault/import-fred/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/penny-vault/import-fred/compare/v0.1.0...0.2.0
