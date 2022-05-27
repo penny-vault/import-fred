@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/penny-vault/import-fred/fred"
 	"github.com/rs/zerolog"
@@ -99,6 +100,9 @@ func init() {
 
 	rootCmd.Flags().Int("fred-rate-limit", 5, "fred rate limit (items per second)")
 	viper.BindPFlag("fred_rate_limit", rootCmd.Flags().Lookup("fred-rate-limit"))
+
+	rootCmd.Flags().Duration("max-age-forward-fill", time.Duration(time.Hour*24*90), "maximum age of eod values to calculate forwrad fill for")
+	viper.BindPFlag("max_age_forward_fill", rootCmd.Flags().Lookup("max-age-forward-fill"))
 
 	rootCmd.Flags().String("parquet-file", "", "save results to parquet")
 	viper.BindPFlag("parquet_file", rootCmd.Flags().Lookup("parquet-file"))

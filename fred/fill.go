@@ -29,7 +29,7 @@ import (
 // forward.
 func Fill(asset *Asset) error {
 	subLog := log.With().Str("figi", asset.CompositeFigi).Str("ticker", asset.Ticker).Logger()
-	subLog.Info().Str("Figi", asset.CompositeFigi).Msg("checking for missing values")
+	subLog.Info().Msg("checking for missing values")
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, viper.GetString("database.url"))
 	if err != nil {
@@ -38,10 +38,24 @@ func Fill(asset *Asset) error {
 	}
 	defer conn.Close(ctx)
 
-	// initialize first value that is used for forward-fill
-	var prevValue float64
+	// get since date
 	var since time.Time
-	if err = conn.QueryRow(ctx, "SELECT event_date, close FROM trading_day WHERE composite_figi=$1 ORDER BY event_date ASC LIMIT 1", asset.CompositeFigi).Scan(&since, &prevValue); err != nil {
+	if err = conn.QueryRow(ctx, "SELECT event_date FROM eod WHERE composite_figi=$1 ORDER BY event_date ASC LIMIT 1", asset.CompositeFigi).Scan(&since); err != nil {
+		subLog.Error().Err(err).Msg("could not retrieve first date")
+		return err
+	}
+
+	max_age := viper.GetDuration("max_age_forward_fill")
+	max_age_dt := time.Now().Add(max_age * -1)
+	if max_age_dt.After(since) {
+		since = max_age_dt
+	}
+
+	subLog.Info().Time("Since", since).Msg("first date for forward-fill")
+
+	// initialize prevValue
+	var prevValue float64
+	if err = conn.QueryRow(ctx, "SELECT close FROM eod WHERE composite_figi=$1 AND event_date < $2 ORDER BY event_date DESC LIMIT 1", asset.CompositeFigi, since).Scan(&prevValue); err != nil {
 		subLog.Error().Err(err).Msg("could not retrieve first value")
 		return err
 	}
@@ -53,13 +67,22 @@ func Fill(asset *Asset) error {
 		return err
 	}
 
+	// remove fill values in the since period (in-case additional values were published by the true source)
+	if _, err = tx.Exec(ctx, `DELETE FROM eod WHERE composite_figi = $1 AND event_date >= $2 AND source = 'api.pennyvault.com'`, asset.CompositeFigi, since); err != nil {
+		subLog.Error().Err(err).Msg("could not remove old values entered by penny vault")
+		tx.Rollback(ctx)
+		return err
+	}
+
 	// get a list of valid trading days
-	rows, err := conn.Query(ctx, "SELECT trading_day FROM trading_days WHERE >= $1", since)
+	tradingDays := make([]time.Time, 0, 252*50)
+	rows, err := conn.Query(ctx, "SELECT trading_day FROM trading_days WHERE trading_day >= $1 ORDER BY trading_day ASC", since)
 	if err != nil {
 		subLog.Error().Err(err).Msg("query database for trading days failed")
 		tx.Rollback(ctx)
 		return err
 	}
+
 	for rows.Next() {
 		var dt time.Time
 		err = rows.Scan(&dt)
@@ -68,9 +91,13 @@ func Fill(asset *Asset) error {
 			tx.Rollback(ctx)
 			return err
 		}
+		tradingDays = append(tradingDays, dt)
+	}
+
+	for _, dt := range tradingDays {
 		// check if missing val
 		cnt := 0
-		err = conn.QueryRow(ctx, "SELECT count(*) FROM eod WHERE figi=$1 AND event_date=$2", asset.CompositeFigi, dt).Scan(&cnt)
+		err = conn.QueryRow(ctx, "SELECT count(*) FROM eod WHERE composite_figi=$1 AND event_date=$2", asset.CompositeFigi, dt).Scan(&cnt)
 		if err != nil {
 			subLog.Error().Err(err).Time("EventDate", dt).Msg("could not determine count for given date")
 			tx.Rollback(ctx)
@@ -79,6 +106,7 @@ func Fill(asset *Asset) error {
 
 		if cnt != 1 {
 			// value is missing, fill forward
+			subLog.Info().Time("EventDate", dt).Float64("PrevValue", prevValue).Msg("missing value in history")
 			if _, err = tx.Exec(ctx, `INSERT INTO eod (
 				"ticker",
 				"composite_figi",
@@ -102,7 +130,8 @@ func Fill(asset *Asset) error {
 				$8,
 				$9,
 				$10,
-				$11`, asset.Ticker, asset.CompositeFigi, dt, prevValue, prevValue, prevValue, prevValue, 0, 0, 1, "fred.stlouisfed.org"); err != nil {
+				$11
+			)`, asset.Ticker, asset.CompositeFigi, dt, prevValue, prevValue, prevValue, prevValue, 0, 0, 1, "api.pennyvault.com"); err != nil {
 				subLog.Error().Err(err).Msg("could not insert row into database")
 				tx.Rollback(ctx)
 				return err

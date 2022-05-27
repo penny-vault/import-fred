@@ -72,7 +72,7 @@ func SaveToDatabase(quotes []*Eod) error {
 			quote.Open, quote.High, quote.Low, quote.Close, quote.Volume,
 			quote.Dividend, quote.Split, "fred.stlouisfed.org")
 		if err != nil {
-			query := fmt.Sprintf(`INSERT INTO eod_v1 ("ticker", "composite_figi", "event_date", "open", "high", "low", "close", "volume", "dividend", "split_factor", "source") VALUES ('%s', '%s', '%s', %.5f, %.5f, %.5f, %.5f, %d, %.5f, %.5f, '%s') ON CONFLICT ON CONSTRAINT eod_v1_pkey DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, dividend = EXCLUDED.dividend, split_factor = EXCLUDED.split_factor, source = EXCLUDED.source;`,
+			query := fmt.Sprintf(`INSERT INTO eod ("ticker", "composite_figi", "event_date", "open", "high", "low", "close", "volume", "dividend", "split_factor", "source") VALUES ('%s', '%s', '%s', %.5f, %.5f, %.5f, %.5f, %d, %.5f, %.5f, '%s') ON CONFLICT ON CONSTRAINT eod_pkey DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, dividend = EXCLUDED.dividend, split_factor = EXCLUDED.split_factor, source = EXCLUDED.source;`,
 				quote.Ticker, quote.CompositeFigi, quote.Date,
 				quote.Open, quote.High, quote.Low, quote.Close, quote.Volume,
 				quote.Dividend, quote.Split, "fred.stlouisfed.org")
