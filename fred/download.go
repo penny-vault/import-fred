@@ -16,14 +16,12 @@ limitations under the License.
 package fred
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/jackc/pgx/v4"
 	"github.com/rs/zerolog/log"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/viper"
@@ -63,7 +61,7 @@ func SaveToParquet(records []*Eod, fn string) error {
 
 	fh, err := local.NewLocalFileWriter(fn)
 	if err != nil {
-		log.Error().Str("OriginalError", err.Error()).Str("FileName", fn).Msg("cannot create local file")
+		log.Error().Err(err).Str("FileName", fn).Msg("cannot create local file")
 		return err
 	}
 	defer fh.Close()
@@ -91,7 +89,7 @@ func SaveToParquet(records []*Eod, fn string) error {
 	}
 
 	if err = pw.WriteStop(); err != nil {
-		log.Error().Str("OriginalError", err.Error()).Msg("Parquet write failed")
+		log.Error().Err(err).Msg("Parquet write failed")
 		return err
 	}
 
@@ -121,7 +119,7 @@ func Fetch(assets []*Asset) []*Eod {
 			SetHeader("Accept", "application/csv").
 			Get(url)
 		if err != nil {
-			log.Error().Str("OriginalError", err.Error()).Str("Url", url).Msg("error when requesting eod quote")
+			log.Error().Err(err).Str("Url", url).Msg("error when requesting eod quote")
 		}
 		if resp.StatusCode() >= 400 {
 			log.Error().Int("StatusCode", resp.StatusCode()).Str("Url", url).Bytes("Body", resp.Body()).Msg("error when requesting eod quote")
@@ -136,7 +134,7 @@ func Fetch(assets []*Asset) []*Eod {
 				}
 				val, err := strconv.ParseFloat(parts[1], 32)
 				if err != nil {
-					log.Warn().Str("Line", ll).Str("Ticker", asset.Ticker).Str("Val", parts[1]).Str("OriginalError", err.Error()).Msg("could not convert str to float")
+					log.Warn().Str("Line", ll).Str("Ticker", asset.Ticker).Str("Val", parts[1]).Err(err).Msg("could not convert str to float")
 				}
 				val32 := float32(val)
 				q := Eod{
@@ -149,6 +147,7 @@ func Fetch(assets []*Asset) []*Eod {
 					High:          val32,
 					Low:           val32,
 					Close:         val32,
+					Split:         1,
 				}
 				quotes = append(quotes, &q)
 			}
@@ -156,63 +155,4 @@ func Fetch(assets []*Asset) []*Eod {
 	}
 
 	return quotes
-}
-
-func SaveToDatabase(quotes []*Eod, dsn string) error {
-	log.Info().Msg("saving to database")
-	conn, err := pgx.Connect(context.Background(), viper.GetString("database.url"))
-	if err != nil {
-		log.Error().Str("OriginalError", err.Error()).Msg("Could not connect to database")
-	}
-	defer conn.Close(context.Background())
-
-	for _, quote := range quotes {
-		_, err := conn.Exec(context.Background(),
-			`INSERT INTO eod (
-			"ticker",
-			"composite_figi",
-			"event_date",
-			"open",
-			"high",
-			"low",
-			"close",
-			"volume",
-			"dividend",
-			"split_factor",
-			"source"
-		) VALUES (
-			$1,
-			$2,
-			$3,
-			$4,
-			$5,
-			$6,
-			$7,
-			$8,
-			$9,
-			$10,
-			$11
-		) ON CONFLICT ON CONSTRAINT eod_pkey
-		DO UPDATE SET
-			open = EXCLUDED.open,
-			high = EXCLUDED.high,
-			low = EXCLUDED.low,
-			close = EXCLUDED.close,
-			volume = EXCLUDED.volume,
-			dividend = EXCLUDED.dividend,
-			split_factor = EXCLUDED.split_factor,
-			source = EXCLUDED.source;`,
-			quote.Ticker, quote.CompositeFigi, quote.Date,
-			quote.Open, quote.High, quote.Low, quote.Close, quote.Volume,
-			quote.Dividend, quote.Split, "fred.stlouisfed.org")
-		if err != nil {
-			query := fmt.Sprintf(`INSERT INTO eod_v1 ("ticker", "composite_figi", "event_date", "open", "high", "low", "close", "volume", "dividend", "split_factor", "source") VALUES ('%s', '%s', '%s', %.5f, %.5f, %.5f, %.5f, %d, %.5f, %.5f, '%s') ON CONFLICT ON CONSTRAINT eod_v1_pkey DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, dividend = EXCLUDED.dividend, split_factor = EXCLUDED.split_factor, source = EXCLUDED.source;`,
-				quote.Ticker, quote.CompositeFigi, quote.Date,
-				quote.Open, quote.High, quote.Low, quote.Close, quote.Volume,
-				quote.Dividend, quote.Split, "fred.stlouisfed.org")
-			log.Error().Str("OriginalError", err.Error()).Str("Query", query).Msg("error saving EOD quote to database")
-		}
-	}
-
-	return nil
 }
