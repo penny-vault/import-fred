@@ -18,7 +18,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/penny-vault/import-fred/fred"
@@ -38,17 +37,7 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		assetsMap := viper.GetStringMapString("assets")
-		assets := make([]*fred.Asset, 0, len(assetsMap))
-		for k, v := range assetsMap {
-			a := fred.Asset{
-				Ticker:        strings.ToUpper(k),
-				CompositeFigi: v,
-				AssetType:     "Economic Indicator",
-				Exchange:      "FRED",
-			}
-			assets = append(assets, &a)
-		}
+		assets := fred.LoadAssetsFromDB()
 
 		limit := viper.GetInt("limit")
 		if limit > 0 {
@@ -82,10 +71,6 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	cobra.OnInitialize(initLog)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is import-fred.toml)")
 	rootCmd.PersistentFlags().Bool("log.json", false, "print logs as json to stderr")

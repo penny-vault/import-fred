@@ -24,6 +24,35 @@ import (
 	"github.com/spf13/viper"
 )
 
+func LoadAssetsFromDB() (assets []*Asset) {
+	assets = make([]*Asset, 0, 5)
+
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, viper.GetString("database.url"))
+	if err != nil {
+		log.Error().Err(err).Msg("Could not connect to database")
+	}
+	defer conn.Close(ctx)
+
+	rows, err := conn.Query(ctx, `SELECT composite_figi, ticker, asset_type FROM assets WHERE asset_type = 'FRED' AND active = 't'`)
+	if err != nil {
+		log.Error().Err(err).Msg("could not retrieve FRED assets from the database")
+		return
+	}
+
+	for rows.Next() {
+		var asset Asset
+		err = rows.Scan(&asset.CompositeFigi, &asset.Ticker, &asset.AssetType)
+		if err != nil {
+			log.Error().Err(err).Msg("error scanning row into asset")
+		}
+		assets = append(assets, &asset)
+		log.Info().Str("Ticker", asset.Ticker).Msg("adding asset for download")
+	}
+
+	return
+}
+
 func SaveToDatabase(quotes []*Eod) error {
 	log.Info().Msg("saving to database")
 	conn, err := pgx.Connect(context.Background(), viper.GetString("database.url"))
