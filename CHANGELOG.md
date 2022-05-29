@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.3.0] - 2022-05-29
+### Added
+- Load assets from PVDB assets table with type FRED
+
+### Removed
+- Ability to specify assets in configuration file
+
+### Fixed
+- Stop processing quotes for current asset when an error is received
 
 ## [0.2.0] - 2022-05-26
 ### Added
@@ -33,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Download economic indicators from FRED
 - Save economic indicators to backblaze and database
 
-[Unreleased]: https://github.com/penny-vault/import-fred/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/penny-vault/import-fred/compare/v0.3.0...HEAD
+[0.2.0]: https://github.com/penny-vault/import-fred/compare/v0.2.0...0.3.0
 [0.2.0]: https://github.com/penny-vault/import-fred/compare/v0.1.0...0.2.0
 [0.1.0]: https://github.com/penny-vault/import-fred/releases/tag/v0.1.0
