@@ -31,31 +31,6 @@ import (
 	"go.uber.org/ratelimit"
 )
 
-type Eod struct {
-	Date          string  `json:"date" parquet:"name=date, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Ticker        string  `json:"ticker" parquet:"name=ticker, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Exchange      string  `json:"exchange" parquet:"name=exchange, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	AssetType     string  `json:"assetType" parquet:"name=assetType, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	CompositeFigi string  `json:"compositeFigi" parquet:"name=compositeFigi, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Open          float32 `json:"open" parquet:"name=open, type=FLOAT"`
-	High          float32 `json:"high" parquet:"name=high, type=FLOAT"`
-	Low           float32 `json:"low" parquet:"name=low, type=FLOAT"`
-	Close         float32 `json:"close" parquet:"name=close, type=FLOAT"`
-	Volume        int64   `json:"volume" parquet:"name=volume, type=INT64, convertedtype=INT_64"`
-	Dividend      float32 `json:"divCash" parquet:"name=dividend, type=FLOAT"`
-	Split         float32 `json:"splitFactor" parquet:"name=split, type=FLOAT"`
-}
-
-type Asset struct {
-	CompositeFigi string `json:"compositeFigi"`
-	Ticker        string `json:"ticker" csv:"ticker"`
-	Exchange      string `json:"exchange" csv:"exchange"`
-	AssetType     string `json:"assetType" csv:"assetType"`
-	PriceCurrency string `json:"priceCurrency" csv:"priceCurrency"`
-	StartDate     string `json:"startDate" csv:"startDate"`
-	EndDate       string `json:"endDate" csv:"endDate"`
-}
-
 func SaveToParquet(records []*Eod, fn string) error {
 	var err error
 
@@ -120,9 +95,11 @@ func Fetch(assets []*Asset) []*Eod {
 			Get(url)
 		if err != nil {
 			log.Error().Err(err).Str("Url", url).Msg("error when requesting eod quote")
+			continue
 		}
 		if resp.StatusCode() >= 400 {
 			log.Error().Int("StatusCode", resp.StatusCode()).Str("Url", url).Bytes("Body", resp.Body()).Msg("error when requesting eod quote")
+			continue
 		}
 		data := string(resp.Body())
 		lines := strings.Split(data, "\n")
@@ -140,7 +117,7 @@ func Fetch(assets []*Asset) []*Eod {
 				q := Eod{
 					Date:          parts[0],
 					Ticker:        asset.Ticker,
-					Exchange:      asset.Exchange,
+					Exchange:      "FRED",
 					AssetType:     asset.AssetType,
 					CompositeFigi: asset.CompositeFigi,
 					Open:          val32,

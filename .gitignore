@@ -17,3 +17,4 @@ import-fred
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+import-fred.toml
