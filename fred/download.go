@@ -85,7 +85,7 @@ func Fetch(assets []*Asset) []*Eod {
 
 	bar := progressbar.Default(int64(len(assets)))
 	for _, asset := range assets {
-		bar.Add(1)
+		check(bar.Add(1), "add to progressbar failed")
 		limit.Take()
 		url := fmt.Sprintf("https://fred.stlouisfed.org/graph/fredgraph.csv?mode=fred&id=%s&cosd=%s&coed=%s&fq=Daily&fam=avg", asset.Ticker, startDateStr, todayStr)
 		log.Debug().Str("Url", url).Msg("Loading URL")

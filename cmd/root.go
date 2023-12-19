@@ -46,15 +46,24 @@ var rootCmd = &cobra.Command{
 
 		quotes := fred.Fetch(assets)
 		if viper.GetString("parquet_file") != "" {
-			fred.SaveToParquet(quotes, viper.GetString("parquet_file"))
+			err := fred.SaveToParquet(quotes, viper.GetString("parquet_file"))
+			if err != nil {
+				log.Error().Err(err).Msg("failed to save to parquet file")
+			}
 		}
 
 		if viper.GetString("database.url") != "" {
-			fred.SaveToDatabase(quotes)
+			err := fred.SaveToDatabase(quotes)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to save to database")
+			}
 		}
 
 		for _, asset := range assets {
-			fred.Fill(asset)
+			err := fred.Fill(asset)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to fill missing assets")
+			}
 		}
 	},
 }
@@ -74,23 +83,41 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is import-fred.toml)")
 	rootCmd.PersistentFlags().Bool("log.json", false, "print logs as json to stderr")
-	viper.BindPFlag("log.json", rootCmd.PersistentFlags().Lookup("log.json"))
+	err := viper.BindPFlag("log.json", rootCmd.PersistentFlags().Lookup("log.json"))
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not bind pflag for log.json")
+	}
 
 	// Local flags
 	rootCmd.Flags().StringP("database-url", "d", "host=localhost port=5432", "DSN for database connection")
-	viper.BindPFlag("database.url", rootCmd.Flags().Lookup("database-url"))
+	err = viper.BindPFlag("database.url", rootCmd.Flags().Lookup("database-url"))
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not bind pflag for database.url")
+	}
 
 	rootCmd.Flags().Uint32P("limit", "l", 0, "limit results to N")
-	viper.BindPFlag("limit", rootCmd.Flags().Lookup("limit"))
+	err = viper.BindPFlag("limit", rootCmd.Flags().Lookup("limit"))
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not bind pflag for limit")
+	}
 
 	rootCmd.Flags().Int("fred-rate-limit", 5, "fred rate limit (items per second)")
-	viper.BindPFlag("fred_rate_limit", rootCmd.Flags().Lookup("fred-rate-limit"))
+	err = viper.BindPFlag("fred_rate_limit", rootCmd.Flags().Lookup("fred-rate-limit"))
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not bind pflag for fred_rate_limit")
+	}
 
 	rootCmd.Flags().Duration("max-age-forward-fill", time.Duration(time.Hour*24*90), "maximum age of eod values to calculate forwrad fill for")
-	viper.BindPFlag("max_age_forward_fill", rootCmd.Flags().Lookup("max-age-forward-fill"))
+	err = viper.BindPFlag("max_age_forward_fill", rootCmd.Flags().Lookup("max-age-forward-fill"))
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not bind pflag for max_age_forward_fill")
+	}
 
 	rootCmd.Flags().String("parquet-file", "", "save results to parquet")
-	viper.BindPFlag("parquet_file", rootCmd.Flags().Lookup("parquet-file"))
+	err = viper.BindPFlag("parquet_file", rootCmd.Flags().Lookup("parquet-file"))
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not bind pflag for parquet_file")
+	}
 }
 
 func initLog() {

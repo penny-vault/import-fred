@@ -70,7 +70,7 @@ func Fill(asset *Asset) error {
 	// remove fill values in the since period (in-case additional values were published by the true source)
 	if _, err = tx.Exec(ctx, `DELETE FROM eod WHERE composite_figi = $1 AND event_date >= $2 AND source = 'api.pennyvault.com'`, asset.CompositeFigi, since); err != nil {
 		subLog.Error().Err(err).Msg("could not remove old values entered by penny vault")
-		tx.Rollback(ctx)
+		check(tx.Rollback(ctx), "transaction rollback failed")
 		return err
 	}
 
@@ -79,7 +79,7 @@ func Fill(asset *Asset) error {
 	rows, err := conn.Query(ctx, "SELECT trading_day FROM trading_days WHERE trading_day >= $1 ORDER BY trading_day ASC", since)
 	if err != nil {
 		subLog.Error().Err(err).Msg("query database for trading days failed")
-		tx.Rollback(ctx)
+		check(tx.Rollback(ctx), "rollback failed")
 		return err
 	}
 
@@ -88,7 +88,7 @@ func Fill(asset *Asset) error {
 		err = rows.Scan(&dt)
 		if err != nil {
 			subLog.Error().Err(err).Msg("could not scan date value")
-			tx.Rollback(ctx)
+			check(tx.Rollback(ctx), "rollback failed")
 			return err
 		}
 		tradingDays = append(tradingDays, dt)
@@ -100,7 +100,7 @@ func Fill(asset *Asset) error {
 		err = conn.QueryRow(ctx, "SELECT count(*) FROM eod WHERE composite_figi=$1 AND event_date=$2", asset.CompositeFigi, dt).Scan(&cnt)
 		if err != nil {
 			subLog.Error().Err(err).Time("EventDate", dt).Msg("could not determine count for given date")
-			tx.Rollback(ctx)
+			check(tx.Rollback(ctx), "transaction rollback failed")
 			return err
 		}
 
@@ -133,19 +133,19 @@ func Fill(asset *Asset) error {
 				$11
 			)`, asset.Ticker, asset.CompositeFigi, dt, prevValue, prevValue, prevValue, prevValue, 0, 0, 1, "api.pennyvault.com"); err != nil {
 				subLog.Error().Err(err).Msg("could not insert row into database")
-				tx.Rollback(ctx)
+				check(tx.Rollback(ctx), "transaction rollback failed")
 				return err
 			}
 		} else {
 			// update forward-fill value
 			if err = conn.QueryRow(ctx, "SELECT close FROM eod WHERE composite_figi=$1 AND event_date = $2", asset.CompositeFigi, dt).Scan(&prevValue); err != nil {
 				subLog.Error().Err(err).Time("EventDate", dt).Msg("could not update fill-forward value")
-				tx.Rollback(ctx)
+				check(tx.Rollback(ctx), "transaction rollback failed")
 				return err
 			}
 		}
 	}
 
-	tx.Commit(ctx)
+	check(tx.Commit(ctx), "transaction commit failed")
 	return nil
 }
