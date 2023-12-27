@@ -3,7 +3,7 @@ module github.com/penny-vault/import-fred
 go 1.21
 
 require (
-	github.com/go-resty/resty/v2 v2.10.0
+	github.com/go-resty/resty/v2 v2.11.0
 	github.com/jackc/pgx/v4 v4.18.1
 	github.com/magefile/mage v1.15.0
 	github.com/rs/zerolog v1.31.0
