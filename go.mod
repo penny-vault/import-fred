@@ -6,7 +6,7 @@ require (
 	github.com/go-resty/resty/v2 v2.11.0
 	github.com/jackc/pgx/v4 v4.18.1
 	github.com/magefile/mage v1.15.0
-	github.com/rs/zerolog v1.31.0
+	github.com/rs/zerolog v1.32.0
 	github.com/schollz/progressbar/v3 v3.14.1
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
