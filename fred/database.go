@@ -75,19 +75,15 @@ func SaveToDatabase(quotes []*Eod) error {
 			"dividend",
 			"split_factor",
 			"source"
-		) VALUES (
-			$1,
-			$2,
-			$3,
-			$4,
-			$5,
-			$6,
-			$7,
-			$8,
-			$9,
-			$10,
-			$11
-		) ON CONFLICT ON CONSTRAINT eod_pkey
+		) SELECT $1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, $11
+		WHERE EXTRACT(DOW FROM $3::date) NOT IN (0, 6)
+		  AND NOT EXISTS (
+			SELECT 1 FROM market_holidays
+			WHERE event_date = $3::date
+			  AND market = 'us'
+			  AND early_close = false
+		  )
+		ON CONFLICT ON CONSTRAINT eod_pkey
 		DO UPDATE SET
 			open = EXCLUDED.open,
 			high = EXCLUDED.high,
